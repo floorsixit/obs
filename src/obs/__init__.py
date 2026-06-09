@@ -1,7 +1,7 @@
 """Shared observability: structlog logging + Sentry, standardized across services.
 
-The canonical implementation of CONVENTIONS.md › Logging and › Error tracking
-(Sentry). Replaces the per-repo copied `logging_config.py` — fix here, bump the tag.
+A single canonical logging + Sentry setup so each service doesn't hand-roll its own —
+fix here, bump the tag, and consumers pin it.
 
     from obs import configure_logging, init_sentry, get_logger, bind_context
 

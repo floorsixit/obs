@@ -1,14 +1,11 @@
 # CLAUDE.md — obs
 
-Shared observability package for `~/dev/homework`: structlog logging + Sentry,
-standardized across the Python services. The **canonical implementation** of the
-workspace `CONVENTIONS.md` › Logging and › Error tracking (Sentry) — it replaces the
-per-repo copied `logging_config.py`.
+Shared observability package: structlog logging + Sentry, standardized across Python
+services. A single canonical logging + Sentry setup so each service doesn't hand-roll
+its own.
 
-This is the workspace's **one deliberate shared package** (an explicit exception to
-"repos are self-contained / no shared package") — justified because the code carries
-PII-scrubbing and the pytest-Sentry guard, where a *divergent* copy is a security bug,
-not just drift.
+The code carries PII-scrubbing and a pytest-Sentry guard, where a *divergent* copy
+would be a security bug, not just drift — which is why it lives in one shared package.
 
 ## Layout
 
@@ -31,7 +28,7 @@ Tag a release; consumers pin it:
 ```bash
 git tag v0.1.0 && git push --tags
 # in a consumer repo:
-uv add "git+ssh://git@github.com/pjvv/obs@v0.1.0"
+uv add "git+https://github.com/pjvv/obs@v0.1.0"
 ```
 
 **Keep the public API stable** — `configure_logging` / `init_sentry` signatures are a

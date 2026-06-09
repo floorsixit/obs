@@ -1,4 +1,4 @@
-# Git hooks — see CONVENTIONS.md › Git hooks (Lefthook).
+# Git hooks (Lefthook).
 # Setup:  brew install lefthook && lefthook install
 # Bypass: git commit/push --no-verify  (CI re-runs these gates regardless)
 pre-commit:
