@@ -19,9 +19,40 @@ import structlog
 # Third-party loggers that are noisy at INFO; pinned to WARNING.
 _NOISY = ("httpx", "httpcore", "uvicorn.access", "sqlalchemy.engine")
 
+# ASGI/WSGI server loggers. When run via their CLIs (`uvicorn app:app`, gunicorn),
+# these install their own handlers with propagate=False, so their output bypasses our
+# root handler and renders in the server's default format — in prod that means
+# lifecycle/access lines escape the JSON pipeline. We clear those handlers and
+# re-enable propagation so they flow through the root obs handler. This relies on
+# configure_logging running *after* the server configures logging, which holds for the
+# standard CLI path (the server configures logging, then imports the app — and the app
+# is where configure_logging is called).
+_SERVER_LOGGERS = (
+    "uvicorn",
+    "uvicorn.error",
+    "uvicorn.access",
+    "gunicorn",
+    "gunicorn.error",
+    "gunicorn.access",
+)
+
+
+# Keys that are pipeline internals, not log attributes — never forward them to Sentry.
+_NON_ATTR_KEYS = frozenset(
+    ("event", "level", "timestamp", "_record", "_from_structlog", "_logger", "_name", "color_message")
+)
+
 
 def _sentry_log_processor(_: Any, __: Any, event_dict: dict) -> dict:
     """Forward this event to Sentry's Logs product (no-op unless enable_logs=True)."""
+    # Recursion guard: the Sentry SDK logs its own activity (e.g. "Sending envelope")
+    # via stdlib logging, which our bridge feeds back here. Forwarding those into Sentry
+    # Logs makes the SDK log again → an exponential feedback loop (catastrophic under
+    # debug=True). Never forward records that originate from the SDK's own logger.
+    record = event_dict.get("_record")
+    if record is not None and getattr(record, "name", "").startswith("sentry_sdk"):
+        return event_dict
+
     try:
         import sentry_sdk.logger as sentry_logger
     except ImportError:  # sentry-sdk always present as a dep, but stay defensive
@@ -32,7 +63,7 @@ def _sentry_log_processor(_: Any, __: Any, event_dict: dict) -> dict:
     with contextlib.suppress(TypeError, ValueError):
         emit(
             event_dict.get("event", ""),
-            **{k: v for k, v in event_dict.items() if k not in ("event", "level", "timestamp")},
+            **{k: v for k, v in event_dict.items() if k not in _NON_ATTR_KEYS},
         )
     return event_dict
 
@@ -74,7 +105,9 @@ def configure_logging(
     renderer = structlog.processors.JSONRenderer() if is_prod else structlog.dev.ConsoleRenderer()
 
     def _drop_internal(_: Any, __: Any, event_dict: dict) -> dict:
-        for key in ("_record", "_from_structlog", "_logger", "_name"):
+        # `color_message` is uvicorn's ANSI-coloured duplicate of the message, passed
+        # as a log `extra`; it's pure noise once bridged into our format.
+        for key in ("_record", "_from_structlog", "_logger", "_name", "color_message"):
             event_dict.pop(key, None)
         return event_dict
 
@@ -92,6 +125,12 @@ def configure_logging(
     root = logging.getLogger()
     root.handlers = [handler]
     root.setLevel(level)
+
+    # Route server loggers through the root handler so they render in our format.
+    for name in _SERVER_LOGGERS:
+        server_logger = logging.getLogger(name)
+        server_logger.handlers = []
+        server_logger.propagate = True
 
     for name in _NOISY:
         logging.getLogger(name).setLevel(logging.WARNING)

@@ -20,6 +20,7 @@ def init_sentry(
     traces_sample_rate: float = 0.0,
     before_send: Callable[..., Any] | None = None,
     before_send_log: Callable[..., Any] | None = None,
+    debug: bool = False,
 ) -> bool:
     """Initialise Sentry if a DSN is set and we're not under pytest.
 
@@ -45,6 +46,7 @@ def init_sentry(
         "traces_sample_rate": traces_sample_rate,
         "send_default_pii": False,
         "enable_logs": True,
+        "debug": debug,
     }
     if release is not None:
         kwargs["release"] = release
