@@ -1,0 +1,20 @@
+# Git hooks — see CONVENTIONS.md › Git hooks (Lefthook).
+# Setup:  brew install lefthook && lefthook install
+# Bypass: git commit/push --no-verify  (CI re-runs these gates regardless)
+pre-commit:
+  parallel: true
+  commands:
+    ruff-lint:
+      glob: "*.py"
+      run: uv run ruff check {staged_files}
+    ruff-format:
+      glob: "*.py"
+      run: uv run ruff format --check {staged_files}
+    ty:
+      glob: "*.py"
+      run: uv run ty check
+
+pre-push:
+  commands:
+    tests:
+      run: uv run pytest
