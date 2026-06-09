@@ -1,5 +1,5 @@
-# CI — see CONVENTIONS.md › CI. Single package, so no path-filter; one job + the
-# standard gates (mirrors the lefthook pre-commit/pre-push).
+# CI — single package, so no path-filter; one job + the standard gates
+# (mirrors the lefthook pre-commit/pre-push).
 name: CI
 on:
   push: { branches: [main] }

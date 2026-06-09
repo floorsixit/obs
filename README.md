@@ -1,14 +1,13 @@
 # obs
 
-Shared observability for `~/dev/homework` — structlog logging + Sentry, standardized
-across the Python services. The canonical implementation of `CONVENTIONS.md` ›
-**Logging** and › **Error tracking (Sentry)**; replaces the per-repo copied
-`logging_config.py`. Fix here, bump the tag — consumers pick it up on `uv sync`.
+Shared observability — structlog logging + Sentry, standardized across Python services.
+A single canonical logging + Sentry setup so each service doesn't hand-roll its own:
+fix here, bump the tag, and consumers pick it up on `uv sync`.
 
 ## Install
 
 ```bash
-uv add "git+ssh://git@github.com/pjvv/obs@v0.1.0"
+uv add "git+https://github.com/pjvv/obs@v0.1.0"
 ```
 
 Pin a tag; `uv.lock` records the commit, so the consuming repo stays reproducible.
