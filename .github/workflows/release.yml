@@ -1,0 +1,39 @@
+# Automated releases — python-semantic-release. On push to main it analyses the
+# conventional-commit history since the last tag, bumps project.version, updates
+# CHANGELOG.md, commits + tags (vX.Y.Z), and creates the GitHub Release. obs is
+# git-installed (no PyPI), so there is no artifact build/upload step.
+#
+# Config lives in pyproject.toml › [tool.semantic_release]. The version-bump commit
+# is pushed via GITHUB_TOKEN, which by design does NOT re-trigger workflows (no loop).
+name: Release
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref_name }}
+      cancel-in-progress: false
+    permissions:
+      contents: write   # push the version commit + tag, create the Release
+    steps:
+      - name: Checkout (full history for version analysis)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Pin release branch to the workflow sha
+        run: git reset --hard ${{ github.sha }}
+
+      - name: Semantic release
+        uses: python-semantic-release/python-semantic-release@v10.5.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          git_committer_name: "github-actions"
+          git_committer_email: "actions@users.noreply.github.com"

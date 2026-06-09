@@ -38,3 +38,28 @@ rules = { invalid-argument-type = "ignore" }
 
 [tool.pytest.ini_options]
 addopts = "-q"
+
+# Automated releases — python-semantic-release drives version + tag + CHANGELOG +
+# GitHub Release from conventional commits on merge to main (see .github/workflows/release.yml).
+# obs is git-installed (no PyPI), so no build/publish artifacts.
+[tool.semantic_release]
+commit_parser = "conventional"
+version_toml = ["pyproject.toml:project.version"]
+build_command = ""
+tag_format = "v{version}"
+allow_zero_version = true
+major_on_zero = false   # pre-1.0: breaking changes bump minor, not major
+
+[tool.semantic_release.changelog]
+mode = "update"   # insert into CHANGELOG.md, preserving any manual edits
+exclude_commit_patterns = [
+    '''chore(?:\([^)]*?\))?: .+''',
+    '''ci(?:\([^)]*?\))?: .+''',
+    '''build(?:\([^)]*?\))?: .+''',
+    '''refactor(?:\([^)]*?\))?: .+''',
+    '''style(?:\([^)]*?\))?: .+''',
+    '''test(?:\([^)]*?\))?: .+''',
+]
+
+[tool.semantic_release.branches.main]
+match = "main"
