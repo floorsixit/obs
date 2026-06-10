@@ -1,6 +1,7 @@
 import json
 import logging
 
+import pytest
 import structlog
 
 from obs import bind_context, configure_logging, get_logger
@@ -20,6 +21,39 @@ def test_json_render_in_prod(capsys, monkeypatch):
     assert rec["service"] == "test-svc"
     assert rec["k"] == 1
     assert rec["level"] == "info"
+
+
+def test_explicit_environment_selects_json(capsys, monkeypatch):
+    # Consumers whose env var isn't named ENV (e.g. sprout-api uses ENVIRONMENT) can pass
+    # the value explicitly. environment="production" must render JSON regardless of ENV.
+    monkeypatch.delenv("ENV", raising=False)
+    configure_logging("test-svc", environment="production", forward_to_sentry=False)
+    get_logger().info("explicit_prod")
+    rec = _last_json(capsys)
+    assert rec["event"] == "explicit_prod"
+    assert rec["service"] == "test-svc"
+
+
+def test_explicit_environment_overrides_env_var(capsys, monkeypatch):
+    # The explicit argument takes precedence over the ENV env var. With ENV=production but
+    # environment="local", we get console output (no JSON line to parse).
+    monkeypatch.setenv("ENV", "production")
+    configure_logging("test-svc", environment="local", forward_to_sentry=False)
+    get_logger().info("explicit_local")
+    line = capsys.readouterr().err.strip().splitlines()[-1]
+    # Console renderer is not valid JSON; the human-readable event name is present.
+    with pytest.raises(json.JSONDecodeError):
+        json.loads(line)
+    assert "explicit_local" in line
+
+
+def test_environment_falls_back_to_env_var(capsys, monkeypatch):
+    # With no explicit argument, behaviour is unchanged: ENV drives the renderer.
+    monkeypatch.setenv("ENV", "production")
+    configure_logging("test-svc", forward_to_sentry=False)
+    get_logger().info("fallback_prod")
+    rec = _last_json(capsys)
+    assert rec["event"] == "fallback_prod"
 
 
 def test_server_loggers_render_through_root(capsys, monkeypatch):
