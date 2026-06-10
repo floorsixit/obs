@@ -1,6 +1,7 @@
 """Structured logging via structlog — console (dev) / JSON (prod), stdlib-bridged.
 
-- dev (`ENV` != production): coloured console; prod: JSON to stderr (machine-parseable)
+- dev (env != production): coloured console; prod: JSON to stderr (machine-parseable).
+  Environment comes from the `environment=` arg if given, else the `ENV` env var.
 - async-safe context via contextvars (bind once in middleware, flows everywhere)
 - intercepts stdlib logging (httpx, uvicorn, sqlalchemy) into the same format
 - optionally forwards each event to Sentry Logs (needs `init_sentry`, enable_logs=True)
@@ -71,6 +72,7 @@ def _sentry_log_processor(_: Any, __: Any, event_dict: dict) -> dict:
 def configure_logging(
     service: str,
     *,
+    environment: str | None = None,
     extra_processors: Sequence[Any] = (),
     forward_to_sentry: bool = True,
 ) -> None:
@@ -79,11 +81,18 @@ def configure_logging(
     Args:
         service: tag added to every event (use the project/app name; matches the
             Sentry `server_name` and the Docker `<project>` token).
+        environment: the deployment environment; JSON is rendered iff this is
+            ``production``, console otherwise. Pass it explicitly when the consumer's
+            setting isn't named ``ENV`` (e.g. sprout-api's ``ENVIRONMENT``) — it takes
+            precedence over the ``ENV`` env var. When ``None`` (the default), falls back
+            to reading ``ENV`` so existing callers are unaffected. Symmetric with
+            ``init_sentry(environment=...)``.
         extra_processors: structlog processors inserted before rendering — the
             per-service extension point (e.g. a redaction or dict-repr filter).
         forward_to_sentry: also emit events to Sentry Logs (pair with `init_sentry`).
     """
-    is_prod = os.getenv("ENV", "development").lower() == "production"
+    env = environment if environment is not None else os.getenv("ENV", "development")
+    is_prod = env.lower() == "production"
     level = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
 
     def _add_service(_: Any, __: Any, event_dict: dict) -> dict:
