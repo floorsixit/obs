@@ -1,0 +1,19 @@
+# Dependabot — see CONVENTIONS.md › Dependencies (Dependabot). Minor+patch grouped
+# into one weekly PR per ecosystem; majors get their own PR. obs has only Python (uv)
+# and the workflow actions — no npm. The github-actions group is what keeps pinned
+# actions current (e.g. the exact setup-uv pin in ci.yml).
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule: { interval: "weekly" }
+    groups:
+      minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule: { interval: "weekly" }
+    groups:
+      minor-patch:
+        update-types: ["minor", "patch"]
