@@ -28,7 +28,7 @@ Tag a release; consumers pin it:
 ```bash
 git tag v0.1.0 && git push --tags
 # in a consumer repo:
-uv add "git+https://github.com/pjvv/obs@v0.1.0"
+uv add "git+https://github.com/floorsixit/obs@v0.1.0"
 ```
 
 **Keep the public API stable** — `configure_logging` / `init_sentry` signatures are a

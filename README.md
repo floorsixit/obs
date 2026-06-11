@@ -7,7 +7,7 @@ fix here, bump the tag, and consumers pick it up on `uv sync`.
 ## Install
 
 ```bash
-uv add "git+https://github.com/pjvv/obs@v0.1.0"
+uv add "git+https://github.com/floorsixit/obs@v0.1.0"
 ```
 
 Pin a tag; `uv.lock` records the commit, so the consuming repo stays reproducible.
