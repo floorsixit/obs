@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v0.2.1 (2026-06-11)
+
+### Bug Fixes
+
+- **logging**: Render JSON for canonical hosted ENV values (dev/prod)
+  ([#7](https://github.com/floorsixit/obs/pull/7),
+  [`0ff80b7`](https://github.com/floorsixit/obs/commit/0ff80b71477990d25072013f5f5f9d7731be9cfd))
+
+
 ## v0.2.0 (2026-06-10)
 
 ### Features
