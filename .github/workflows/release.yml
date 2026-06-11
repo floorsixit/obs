@@ -4,7 +4,10 @@
 # git-installed (no PyPI), so there is no artifact build/upload step.
 #
 # Config lives in pyproject.toml › [tool.semantic_release]. The version-bump commit
-# is pushed via GITHUB_TOKEN, which by design does NOT re-trigger workflows (no loop).
+# is pushed via a token minted from the `floorsixit-release` GitHub App (App ID
+# 4026257) — NOT GITHUB_TOKEN — so the push can bypass branch-protection rules that
+# require PRs + ci-success on main (the App is an Integration bypass actor on the
+# ruleset). App-token pushes, like GITHUB_TOKEN, do NOT re-trigger workflows (no loop).
 name: Release
 on:
   push:
@@ -20,13 +23,22 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref_name }}
       cancel-in-progress: false
     permissions:
-      contents: write   # push the version commit + tag, create the Release
+      contents: read    # the App token (not GITHUB_TOKEN) does the privileged push
     steps:
+      - name: Mint a token from the floorsixit-release App
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: Checkout (full history for version analysis)
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}   # push as the App → bypasses the ruleset
+          persist-credentials: true
 
       - name: Pin release branch to the workflow sha
         run: git reset --hard ${{ github.sha }}
@@ -34,6 +46,6 @@ jobs:
       - name: Semantic release
         uses: python-semantic-release/python-semantic-release@v10.5.3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          git_committer_name: "github-actions"
-          git_committer_email: "actions@users.noreply.github.com"
+          github_token: ${{ steps.app-token.outputs.token }}
+          git_committer_name: "floorsixit-release[bot]"
+          git_committer_email: "292719070+floorsixit-release[bot]@users.noreply.github.com"
