@@ -18,6 +18,7 @@ packages = ["src/obs"]
 [dependency-groups]
 dev = [
     "pytest>=8.0",
+    "pytest-cov>=5.0",
     "ruff>=0.15.0",
     "ty==0.0.46",   # pre-1.0, churns; pin and bump deliberately (per conventions)
 ]
@@ -37,7 +38,8 @@ include = ["src/obs/logging.py"]
 rules = { invalid-argument-type = "ignore" }
 
 [tool.pytest.ini_options]
-addopts = "-q"
+# Coverage floor (per conventions): start below current (96%) and ratchet up over time.
+addopts = "-q --cov=obs --cov-report=term-missing --cov-fail-under=90"
 
 # Automated releases — python-semantic-release drives version + tag + CHANGELOG +
 # GitHub Release from conventional commits on merge to main (see .github/workflows/release.yml).
