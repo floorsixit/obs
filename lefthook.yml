@@ -1,6 +1,7 @@
 # Git hooks (Lefthook).
-# Setup:  brew install lefthook && lefthook install
-# Bypass: git commit/push --no-verify  (CI re-runs these gates regardless)
+# Setup:   brew install lefthook && lefthook install
+# Prereqs: uv sync  (the hooks shell out to `uv run`)
+# Bypass:  git commit/push --no-verify  (CI re-runs these gates regardless)
 pre-commit:
   parallel: true
   commands:
