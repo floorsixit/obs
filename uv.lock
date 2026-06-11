@@ -31,7 +31,7 @@ wheels = [
 
 [[package]]
 name = "obs"
-version = "0.1.1"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "sentry-sdk" },
@@ -55,7 +55,7 @@ requires-dist = [
 dev = [
     { name = "pytest", specifier = ">=8.0" },
     { name = "ruff", specifier = ">=0.15.0" },
-    { name = "ty", specifier = ">=0.0.23" },
+    { name = "ty", specifier = "==0.0.46" },
 ]
 
 [[package]]

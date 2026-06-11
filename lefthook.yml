@@ -15,6 +15,7 @@ pre-commit:
       run: uv run ty check
 
 pre-push:
+  parallel: true
   commands:
     tests:
       run: uv run pytest
