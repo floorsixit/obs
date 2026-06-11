@@ -56,6 +56,31 @@ def test_environment_falls_back_to_env_var(capsys, monkeypatch):
     assert rec["event"] == "fallback_prod"
 
 
+@pytest.mark.parametrize("env", ["prod", "dev"])
+def test_canonical_hosted_envs_render_json(capsys, monkeypatch, env):
+    # The workspace ENV convention is local|dev|prod|test: both `dev` and `prod` are
+    # *hosted* and must emit machine-parseable JSON (only `local` is console). A consumer
+    # following the convention sets ENV=prod (not "production"), so these must be JSON.
+    monkeypatch.setenv("ENV", env)
+    configure_logging("test-svc", forward_to_sentry=False)
+    get_logger().info("hosted_event")
+    rec = _last_json(capsys)
+    assert rec["event"] == "hosted_event"
+    assert rec["service"] == "test-svc"
+
+
+@pytest.mark.parametrize("env", ["local", "test"])
+def test_console_envs_are_not_json(capsys, monkeypatch, env):
+    # local (dev machine) and test (the suite) render the human console, not JSON.
+    monkeypatch.setenv("ENV", env)
+    configure_logging("test-svc", forward_to_sentry=False)
+    get_logger().info("console_event")
+    line = capsys.readouterr().err.strip().splitlines()[-1]
+    with pytest.raises(json.JSONDecodeError):
+        json.loads(line)
+    assert "console_event" in line
+
+
 def test_server_loggers_render_through_root(capsys, monkeypatch):
     # uvicorn/gunicorn install their own handlers with propagate=False when run via
     # their CLIs. configure_logging (which runs after, on app import) must neutralize

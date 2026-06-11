@@ -1,6 +1,6 @@
 """Structured logging via structlog — console (dev) / JSON (prod), stdlib-bridged.
 
-- dev (env != production): coloured console; prod: JSON to stderr (machine-parseable).
+- local/test: coloured console; hosted (dev/prod): JSON to stderr (machine-parseable).
   Environment comes from the `environment=` arg if given, else the `ENV` env var.
 - async-safe context via contextvars (bind once in middleware, flows everywhere)
 - intercepts stdlib logging (httpx, uvicorn, sqlalchemy) into the same format
@@ -81,18 +81,25 @@ def configure_logging(
     Args:
         service: tag added to every event (use the project/app name; matches the
             Sentry `server_name` and the Docker `<project>` token).
-        environment: the deployment environment; JSON is rendered iff this is
-            ``production``, console otherwise. Pass it explicitly when the consumer's
-            setting isn't named ``ENV`` (e.g. sprout-api's ``ENVIRONMENT``) — it takes
-            precedence over the ``ENV`` env var. When ``None`` (the default), falls back
-            to reading ``ENV`` so existing callers are unaffected. Symmetric with
-            ``init_sentry(environment=...)``.
+        environment: the deployment environment (the workspace ``ENV`` vocabulary,
+            ``local|dev|prod|test``). Hosted environments (``dev``, ``prod``, and any
+            unrecognised value) render JSON; ``local``/``test``/``development`` render
+            the human console. Pass it explicitly when the consumer's setting isn't named
+            ``ENV`` (e.g. sprout-api's ``ENVIRONMENT``) — it takes precedence over the
+            ``ENV`` env var. When ``None`` (the default), falls back to reading ``ENV``.
+            Symmetric with ``init_sentry(environment=...)``.
         extra_processors: structlog processors inserted before rendering — the
             per-service extension point (e.g. a redaction or dict-repr filter).
         forward_to_sentry: also emit events to Sentry Logs (pair with `init_sentry`).
     """
     env = environment if environment is not None else os.getenv("ENV", "development")
-    is_prod = env.lower() == "production"
+    # Per the workspace ENV convention (local|dev|prod|test): only `local` is a dev
+    # machine (console); `dev` and `prod` are both *hosted* and emit JSON. `test` (the
+    # suite) and the legacy `development` default stay console. Anything else is treated
+    # as hosted → JSON, so an unrecognised hosted env still gets machine-parseable logs.
+    # "production" is kept as a console-exempt alias for callers already passing it.
+    _console_envs = {"local", "test", "development"}
+    is_prod = env.lower() not in _console_envs
     level = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
 
     def _add_service(_: Any, __: Any, event_dict: dict) -> dict:
