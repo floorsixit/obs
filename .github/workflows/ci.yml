@@ -1,5 +1,7 @@
 # CI — single package, so no path-filter; one job + the standard gates
-# (mirrors the lefthook pre-commit/pre-push).
+# (lint+format / typecheck / test mirror the lefthook pre-commit/pre-push; the
+# security gate is CI-only — it needs network + a fresh advisory DB, so it isn't a
+# local hook, and Dependabot covers the same surface between pushes).
 name: CI
 on:
   push: { branches: [main] }
@@ -16,3 +18,8 @@ jobs:
       - run: uv run ruff check . && uv run ruff format --check .
       - run: uv run ty check
       - run: uv run pytest
+      # Security — audit the synced env (the locked deps consumers install, plus dev
+      # tooling) against the advisory DB. `--with pip-audit` runs it *inside* the project
+      # env so it reads installed metadata — no resolution venv (uv's standalone Python
+      # has no ensurepip, which breaks pip-audit's default `-r` mode).
+      - run: uv run --with pip-audit pip-audit
